@@ -14,9 +14,11 @@ export default defineConfig({
     host: true,
     port: Number(process.env.PORT) || 4321,
   },
-
   vite: {
     plugins: [tailwindcss()],
+    build: {
+      rollupOptions: { external: ["uuid"] },
+    },
   },
 
   adapter: node({
