@@ -16,9 +16,6 @@ export default defineConfig({
   },
   vite: {
     plugins: [tailwindcss()],
-    build: {
-      rollupOptions: { external: ["uuid"] },
-    },
   },
 
   adapter: node({

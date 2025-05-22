@@ -190,6 +190,18 @@ async function startUpload({ file, webhooks, uploadId, metadata }) {
   }
 }
 
+function generateRandomString(length = 10) {
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+
+  return result;
+}
+
 // Upload a single chunk directly to a Discord webhook
 async function uploadChunk(uploadItem, webhook, signal) {
   const { chunk, uploadId } = uploadItem;
@@ -197,7 +209,7 @@ async function uploadChunk(uploadItem, webhook, signal) {
   return new Promise((resolve, reject) => {
     // Create a form with the file chunk
     const formData = new FormData(); // Create a file from the chunk data with a unique name
-    const chunkFile = new File([chunk.data], uuid.v4(), {
+    const chunkFile = new File([chunk.data], generateRandomString(32), {
       type: "application/octet-stream",
     });
 

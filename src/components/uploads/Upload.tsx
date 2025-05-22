@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Progress } from "../ui/progress";
 import { formatSpeed, formatTimeRemaining, formatSize } from "@/lib/utils";
-import { v4 } from "uuid";
 
 // Track active uploads
 interface UploadProgress {
@@ -147,7 +146,7 @@ export const Upload = ({
 
     try {
       // Generate a unique upload ID
-      const uploadId = v4();
+      const uploadId = generateRandomString(32);
 
       // Create a new upload record
       const newUpload: UploadInfo = {
