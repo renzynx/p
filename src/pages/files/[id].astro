@@ -1,0 +1,529 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { formatDate, formatSize } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+
+// Get the file ID from the URL
+const { id } = Astro.params;
+let file = null;
+let error = null;
+
+// Fetch file details if ID is available
+if (id) {
+  try {
+    const response = await fetch(
+      `${import.meta.env.PUBLIC_API_URL}/files/${id}`,
+      {
+        headers: {
+          Cookie: Astro.locals.cookie!,
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch file: ${response.status} ${response.statusText}`
+      );
+    }
+
+    file = await response.json();
+  } catch (err) {
+    console.error("Error fetching file:", err);
+    error = err instanceof Error ? err.message : "Unknown error";
+  }
+}
+
+// Determine if the file is previewable and what type of preview to show
+let isImage = false;
+let isAudio = false;
+let isVideo = false;
+let isPdf = false;
+let isPreviewable = false;
+
+if (file && file.type) {
+  isImage = file.type.startsWith("image/");
+  isAudio = file.type.startsWith("audio/");
+  isVideo = file.type.startsWith("video/");
+  isPdf = file.type === "application/pdf";
+  isPreviewable = isImage || isAudio || isVideo || isPdf;
+}
+
+// Generate streaming URLs
+const streamUrl = `${import.meta.env.PUBLIC_API_URL}/files/${id}/stream`;
+// For preview we don't use the download attribute, showing inline
+const previewUrl = streamUrl;
+// For download we explicitly add a download query parameter
+const downloadUrl = `${streamUrl}?download=true`;
+---
+
+<Layout title={file ? `File: ${file.name} | FullX` : "File Details | FullX"}>
+  <main class="container mx-auto p-4 space-y-6">
+    <div class="flex items-center justify-between">
+      <h1 class="text-3xl font-bold">File Details</h1>
+      <a
+        href="/files"
+        class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+        >Back to Files</a
+      >
+    </div>
+
+    <div class="grid grid-cols-1 gap-6">
+      {error && <div class="bg-red-100 text-red-700 p-4 rounded">{error}</div>}
+
+      {
+        !file && !error && (
+          <div class="bg-yellow-100 text-yellow-700 p-4 rounded">
+            Loading file details...
+          </div>
+        )
+      }
+
+      {
+        file && (
+          <Card>
+            {" "}
+            <CardHeader>
+              <div class="flex items-center gap-4">
+                {" "}
+                <div class="shrink-0 h-10 w-10 flex items-center justify-center rounded-md bg-card">
+                  {isImage && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="text-blue-600"
+                    >
+                      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                      <circle cx="9" cy="9" r="2" />
+                      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                    </svg>
+                  )}
+                  {isAudio && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="text-purple-600"
+                    >
+                      <path d="M3 12a3 3 0 0 0 3 3 3 3 0 0 0-3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3Z" />
+                      <path d="M21 12a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0-3-3 3 3 0 0 0 3-3Z" />
+                      <path d="M9 12a3 3 0 0 0 3 3 3 3 0 0 0-3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3Z" />
+                      <path d="M15 12a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0-3-3 3 3 0 0 0 3-3Z" />
+                    </svg>
+                  )}
+                  {isVideo && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="text-red-600"
+                    >
+                      <rect width="18" height="18" x="3" y="3" rx="2" />
+                      <path d="m12 8 4 4-4 4" />
+                    </svg>
+                  )}
+                  {isPdf && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="text-orange-600"
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <path d="M14 2v6h6" />
+                      <path d="M16 13H8" />
+                      <path d="M16 17H8" />
+                      <path d="M10 9H8" />
+                    </svg>
+                  )}
+                  {!isPreviewable && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="text-gray-600"
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <CardTitle>{file.name}</CardTitle>
+                  <CardDescription>File Information</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {" "}
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h3 class="text-sm font-medium">File ID</h3>
+                  <p class="text-sm text-gray-500">{file.id}</p>
+                </div>
+                <div>
+                  {" "}
+                  <h3 class="text-sm font-medium">File Type</h3>
+                  <p class="text-sm text-gray-500 flex items-center">
+                    {file.type || "Unknown"}
+                    {isPreviewable && (
+                      <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        Previewable
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <h3 class="text-sm font-medium">Size</h3>
+                  <p class="text-sm text-gray-500">{formatSize(file.size)}</p>
+                </div>
+                <div>
+                  <h3 class="text-sm font-medium">Total Chunks</h3>
+                  <p class="text-sm text-gray-500">{file.total_chunks}</p>
+                </div>
+                <div>
+                  <h3 class="text-sm font-medium">Uploaded</h3>
+                  <p class="text-sm text-gray-500">
+                    {formatDate(file.created_at)}
+                  </p>
+                </div>
+                <div>
+                  <h3 class="text-sm font-medium">Last Updated</h3>
+                  <p class="text-sm text-gray-500">
+                    {formatDate(file.updated_at)}
+                  </p>
+                </div>
+              </div>
+              {file.chunks && file.chunks.length > 0 && (
+                <div class="mt-6">
+                  {" "}
+                  <h3 class="text-lg font-medium mb-2">Chunks</h3>
+                  <div class="border rounded-md divide-y">
+                    {file.chunks.map((chunk: any) => (
+                      <div class="p-3 flex justify-between items-center">
+                        <div>
+                          <h4 class="text-sm font-medium">
+                            Chunk {chunk.chunk_number}
+                          </h4>
+                          <p class="text-xs text-gray-500">
+                            Expires: {formatDate(chunk.url_expiry)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}{" "}
+                  </div>
+                </div>
+              )}{" "}
+              {isPreviewable && (
+                <div class="mt-8 border rounded-md p-4 bg-card">
+                  <h3 class="text-lg font-medium mb-4">Preview</h3>
+
+                  {/* Image Preview */}
+                  {isImage && (
+                    <div class="flex flex-col items-center relative">
+                      <div
+                        class="w-full flex justify-center items-center"
+                        style="min-height: 200px;"
+                      >
+                        <div
+                          class="absolute inset-0 flex items-center justify-center"
+                          id="loader-image"
+                        >
+                          <div class="rounded-md p-4 bg-card/80 flex items-center space-x-2">
+                            <svg
+                              class="animate-spin h-5 w-5 text-primary"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                class="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                stroke-width="4"
+                              />
+                              <path
+                                class="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              />
+                            </svg>
+                            <span>Loading image...</span>
+                          </div>
+                        </div>
+                        <img
+                          src={previewUrl}
+                          alt={file.name}
+                          class="max-w-full max-h-[500px] object-contain rounded-md shadow-sm"
+                          loading="lazy"
+                          onload="this.style.opacity = '1'; document.getElementById('loader-image').style.display = 'none';"
+                          onerror="this.onerror=null; this.style.display='none'; document.getElementById('loader-image').innerHTML = '<div class=\'p-4 text-center text-red-500\'>Failed to load image. The file may be corrupted or the preview link has expired.</div>';"
+                          style="transition: opacity 0.3s; opacity: 0;"
+                        />
+                      </div>
+                      <div class="mt-2 text-sm text-gray-500">
+                        Image preview - {formatSize(file.size)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Audio Preview */}
+                  {isAudio && (
+                    <div class="flex flex-col items-center relative">
+                      <div
+                        class="w-full flex justify-center items-center"
+                        style="min-height: 80px;"
+                      >
+                        <div
+                          class="absolute inset-0 flex items-center justify-center"
+                          id="loader-audio"
+                        >
+                          <div class="rounded-md p-4 bg-card/80 flex items-center space-x-2">
+                            <svg
+                              class="animate-spin h-5 w-5 text-primary"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                class="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                stroke-width="4"
+                              />
+                              <path
+                                class="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              />
+                            </svg>
+                            <span>Loading audio...</span>
+                          </div>
+                        </div>
+                        <audio
+                          controls
+                          class="w-full max-w-md"
+                          preload="metadata"
+                          oncanplay="this.style.opacity = '1'; document.getElementById('loader-audio').style.display = 'none';"
+                          onerror="this.onerror=null; this.style.display='none'; document.getElementById('loader-audio').innerHTML = '<div class=\'p-4 text-center text-red-500\'>Failed to load audio. The file may be corrupted or the preview link has expired.</div>';"
+                          style="transition: opacity 0.3s; opacity: 0;"
+                        >
+                          <source src={previewUrl} type={file.type} />
+                          Your browser does not support the audio element.
+                        </audio>
+                      </div>
+                      <div class="mt-2 text-sm text-gray-500">
+                        Audio player - {formatSize(file.size)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Video Preview */}
+                  {isVideo && (
+                    <div class="flex flex-col items-center relative">
+                      <div
+                        class="w-full flex justify-center items-center"
+                        style="min-height: 200px;"
+                      >
+                        <div
+                          class="absolute inset-0 flex items-center justify-center"
+                          id="loader-video"
+                        >
+                          <div class="rounded-md p-4 bg-card/80 flex items-center space-x-2">
+                            <svg
+                              class="animate-spin h-5 w-5 text-primary"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                class="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                stroke-width="4"
+                              />
+                              <path
+                                class="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              />
+                            </svg>
+                            <span>Loading video...</span>
+                          </div>
+                        </div>
+                        <video
+                          controls
+                          class="max-w-full max-h-[500px] rounded-md shadow-sm"
+                          preload="metadata"
+                          oncanplay="this.style.opacity = '1'; document.getElementById('loader-video').style.display = 'none';"
+                          onerror="this.onerror=null; this.style.display='none'; document.getElementById('loader-video').innerHTML = '<div class=\'p-4 text-center text-red-500\'>Failed to load video. The file may be corrupted or the preview link has expired.</div>';"
+                          style="transition: opacity 0.3s; opacity: 0;"
+                        >
+                          <source src={previewUrl} type={file.type} />
+                          Your browser does not support the video element.
+                        </video>
+                      </div>
+                      <div class="mt-2 text-sm text-gray-500">
+                        Video player - {formatSize(file.size)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PDF Preview */}
+                  {isPdf && (
+                    <div class="flex flex-col items-center relative">
+                      <div
+                        class="w-full flex justify-center items-center"
+                        style="min-height: 500px;"
+                      >
+                        <div
+                          class="absolute inset-0 flex items-center justify-center"
+                          id="loader-pdf"
+                        >
+                          <div class="rounded-md p-4 bg-card/80 flex items-center space-x-2">
+                            <svg
+                              class="animate-spin h-5 w-5 text-primary"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                class="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                stroke-width="4"
+                              />
+                              <path
+                                class="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              />
+                            </svg>
+                            <span>Loading PDF...</span>
+                          </div>
+                        </div>
+                        <iframe
+                          src={previewUrl}
+                          class="w-full h-[500px] rounded-md shadow-sm"
+                          onload="this.style.opacity = '1'; document.getElementById('loader-pdf').style.display = 'none';"
+                          onerror="this.onerror=null; this.style.display='none'; document.getElementById('loader-pdf').innerHTML = '<div class=\'p-4 text-center text-red-500\'>Failed to load PDF. The file may be corrupted or the preview link has expired.</div>';"
+                          style="transition: opacity 0.3s; opacity: 0;"
+                        />
+                      </div>
+                      <div class="mt-2 text-sm text-gray-500">
+                        PDF preview - {formatSize(file.size)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {!isPreviewable && file && (
+                <div class="mt-8 border border-dashed rounded-md p-4 bg-card text-center">
+                  <div class="flex flex-col items-center justify-center space-y-3 py-4">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="40"
+                      height="40"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="text-gray-400"
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <path d="M10 12 a2 2 0 1 0 4 0 a2 2 0 1 0 -4 0" />
+                    </svg>
+                    <p class="text-sm text-gray-500">
+                      No preview available for this file type
+                    </p>
+                    <p class="text-xs text-gray-400">
+                      {file.type || "Unknown file type"}
+                    </p>
+                  </div>
+                </div>
+              )}{" "}
+              <div class="mt-6 flex flex-wrap gap-2">
+                <a
+                  href={downloadUrl}
+                  download={file.name}
+                  target="_blank"
+                  class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="mr-2"
+                  >
+                    <>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </>
+                  </svg>
+                  Download
+                </a>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      }
+    </div>
+  </main>
+</Layout>

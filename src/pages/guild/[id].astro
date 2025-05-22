@@ -1,0 +1,63 @@
+---
+import { ChannelList } from "@/components/channels/ChannelList";
+import { Button } from "@/components/ui/button";
+import { WebhookList } from "@/components/webhooks/WebhookList";
+import Layout from "@/layouts/Layout.astro";
+import type { Guild, Channel } from "@/types";
+import { Upload } from "@/components/uploads/Upload";
+
+const { id } = Astro.params;
+
+const res = await fetch(`${import.meta.env.PUBLIC_API_URL}/guilds/${id}`, {
+  headers: { Cookie: Astro.locals.cookie! },
+});
+
+let error = "";
+let invite = false;
+
+if (!res.ok) {
+  if (res.status === 404) {
+    return Astro.rewrite("/404");
+  }
+
+  if (res.status === 403) {
+    error = "You need to invite the bot to this server.";
+    invite = true;
+  } else {
+    error = "An error occurred while fetching the guild.";
+  }
+}
+
+const data: { guild: Guild; channels: Channel[] } = await res.json();
+---
+
+<Layout title={`Guild ${data.guild.name}`}>
+  <div class="p-4">
+    {
+      invite ? (
+        <Button>
+          <a
+            href={`${import.meta.env.PUBLIC_API_URL}/bot/invite?guild_id=${id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Invite Bot
+          </a>
+        </Button>
+      ) : (
+        <div>
+          <h1 class="text-2xl font-bold mb-4 text-center">{data.guild.name}</h1>
+
+          <div class="flex gap-4 flex-col md:flex-row">
+            <ChannelList client:load channels={data.channels} />
+
+            <div class="flex flex-col gap-4 w-full">
+              <Upload client:load />
+              <WebhookList client:load />
+            </div>
+          </div>
+        </div>
+      )
+    }
+  </div>
+</Layout>

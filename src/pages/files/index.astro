@@ -1,0 +1,99 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { FileList } from "../../components/files/FileList";
+import { Upload } from "../../components/uploads/Upload";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+// Get query parameters for pagination
+const page = parseInt(Astro.url.searchParams.get("page") || "1");
+const limit = parseInt(Astro.url.searchParams.get("limit") || "10");
+const sortBy = Astro.url.searchParams.get("sortBy") || "created_at";
+const orderBy = Astro.url.searchParams.get("orderBy") || "desc";
+
+// Get files from API
+let files = [];
+let total = 0;
+let error = null;
+
+try {
+  const response = await fetch(
+    `${import.meta.env.PUBLIC_API_URL}/files?page=${page}&limit=${limit}&sortBy=${sortBy}&orderBy=${orderBy}`,
+    {
+      headers: {
+        Cookie: Astro.locals.cookie!,
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch files: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const data = await response.json();
+  files = data.files;
+  total = data.total;
+} catch (err) {
+  console.error("Error fetching files:", err);
+  error = err instanceof Error ? err.message : "Unknown error";
+}
+---
+
+<Layout title="Files | FullX">
+  <main class="container mx-auto p-4 space-y-6">
+    <h1 class="text-3xl font-bold">Your Files</h1>
+
+    <div class="grid grid-cols-1 gap-6">
+      <div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Upload New File</CardTitle>
+            <CardDescription>Upload a new file to your account</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Upload client:load />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Files</CardTitle>
+            <CardDescription>Manage your uploaded files</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {
+              error && (
+                <div class="bg-red-100 text-red-700 p-4 rounded mb-4">
+                  {error}
+                </div>
+              )
+            }
+            <FileList
+              client:load
+              files={files}
+              total={total}
+              page={page}
+              limit={limit}
+              onPageChange={(newPage) => {
+                const url = new URL(Astro.url);
+                url.searchParams.set("page", newPage.toString());
+                window.location.href = url.toString();
+              }}
+            />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  </main>
+</Layout>
