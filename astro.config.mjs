@@ -11,6 +11,7 @@ export default defineConfig({
   integrations: [react()],
   output: "server",
   server: {
+    host: true,
     port: Number(process.env.PORT) || 4321,
   },
 
