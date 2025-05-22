@@ -1,6 +1,11 @@
 // upload.worker.js
 // This is a Web Worker that handles file uploads through Discord webhooks
 
+// Import UUID library
+importScripts(
+  "https://cdn.jsdelivr.net/npm/uuid@11.1.0/dist/cjs-browser/index.min.js"
+);
+
 let activeUploads = new Map();
 let abortControllers = new Map();
 
@@ -191,10 +196,8 @@ async function uploadChunk(uploadItem, webhook, signal) {
 
   return new Promise((resolve, reject) => {
     // Create a form with the file chunk
-    const formData = new FormData();
-
-    // Create a file from the chunk data with a unique name
-    const chunkFile = new File([chunk.data], self.crypto.randomUUID(), {
+    const formData = new FormData(); // Create a file from the chunk data with a unique name
+    const chunkFile = new File([chunk.data], uuid.v4(), {
       type: "application/octet-stream",
     });
 
